@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Семейный мессенджер с паролем</title>
+<style>
+body { margin:0; font-family: Arial, sans-serif; background:#f0f0f0; }
+#login, #chat { width: 90%; max-width:600px; margin: 50px auto; }
+#messages { height:400px; overflow:auto; background:white; padding:10px; border:1px solid #ccc; }
+#inputArea { display:flex; margin-top:10px; }
+#msgInput { flex:1; padding:10px; font-size:16px; }
+#sendBtn, #loginBtn { padding:10px 20px; font-size:16px; }
+.message { margin-bottom:8px; }
+.sender { font-weight:700; margin-right:5px; }
+.time { color:#888; font-size:12px; margin-left:5px; }
+</style>
+</head>
+<body>
+
+<!-- Вход по паролю -->
+<div id="login">
+  <h2>Введите пароль семьи</h2>
+  <input type="password" id="passwordInput" placeholder="Пароль">
+  <button id="loginBtn">Войти</button>
+</div>
+
+<!-- Чат -->
+<div id="chat" style="display:none;">
+  <div id="messages"></div>
+  <div id="inputArea">
+    <input type="text" id="msgInput" placeholder="Напишите сообщение..." />
+    <button id="sendBtn">Отправить</button>
+  </div>
+</div>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<script>
+// --- Firebase конфиг ---
+const firebaseConfig = {
+  apiKey: "AIzaSyCK0ILkW5cb21NXA4SOGCn_5XHQJJAnyQU",
+  authDomain: "dopopo-b0a3d.firebaseapp.com",
+  databaseURL: "https://dopopo-b0a3d-default-rtdb.firebaseio.com",
+  projectId: "dopopo-b0a3d",
+  storageBucket: "dopopo-b0a3d.appspot.com",
+  messagingSenderId: "511345177750",
+  appId: "1:511345177750:web:f54f9660152939b822beb7",
+  measurementId: "G-CT6RWB0M2Q"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// --- Настройка пароля ---
+const FAMILY_PASSWORD = "мессенджер"; // <-- здесь твой пароль
+
+const loginDiv = document.getElementById('login');
+const chatDiv = document.getElementById('chat');
+const passwordInput = document.getElementById('passwordInput');
+const loginBtn = document.getElementById('loginBtn');
+
+loginBtn.addEventListener('click', () => {
+  if(passwordInput.value === FAMILY_PASSWORD){
+    loginDiv.style.display = 'none';
+    chatDiv.style.display = 'block';
+    startChat();
+  } else {
+    alert("Неверный пароль!");
+  }
+});
+
+// --- Чат ---
+function startChat(){
+  let userName = prompt("Введите ваше имя:", "Гость") || "Гость";
+
+  const msgInput = document.getElementById('msgInput');
+  const sendBtn = document.getElementById('sendBtn');
+  const messagesEl = document.getElementById('messages');
+
+  function sendMessage() {
+    const text = msgInput.value.trim();
+    if (!text) return;
+    db.ref('messages').push({ sender: userName, text: text, time: Date.now() });
+    msgInput.value = '';
+  }
+
+  sendBtn.addEventListener('click', sendMessage);
+  msgInput.addEventListener('keydown', e => { if(e.key === 'Enter') sendMessage(); });
+
+  db.ref('messages').on('child_added', snapshot => {
+    const msg = snapshot.val();
+    displayMessage(msg.sender, msg.text, new Date(msg.time));
+  });
+
+  function displayMessage(sender, text, time) {
+    const div = document.createElement('div');
+    div.className = 'message';
+    const timeStr = time.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    div.innerHTML = `<span class="sender">${sender}:</span> <span class="text">${text}</span> <span class="time">${timeStr}</span>`;
+    messagesEl.appendChild(div);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+}
+</script>
+</body>
+</html>
